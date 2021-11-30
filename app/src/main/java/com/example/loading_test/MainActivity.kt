@@ -4,15 +4,20 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.loading_test.ui.theme.Loading_testTheme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,21 +26,60 @@ class MainActivity : ComponentActivity() {
             Loading_testTheme {
                 // A surface container using the 'background' color from the theme
                 Surface(color = MaterialTheme.colors.background) {
-                    Show()
+                    ShowVM()
                 }
             }
         }
     }
 }
 
+class LoadingViewModel : ViewModel() {
+    val _loading: MutableLiveData<Boolean> = MutableLiveData(false)
+    var loading: LiveData<Boolean> = _loading
+
+    fun getContent(){
+        viewModelScope.launch {
+            _loading.postValue(loading.value?.equals(true))
+            delay(5000L)
+            _loading.postValue(loading.value?.equals(false))
+        }
+    }
+}
+
+@Composable
+fun ShowVM(viewModel: LoadingViewModel = LoadingViewModel()){
+    val loading = viewModel.loading.observeAsState()
+    viewModel.getContent()
+//    CircularProgressBar(isDisplayed = loading.value!!)
+    Column(modifier = Modifier.fillMaxSize()) {
+        Button(onClick = {
+            viewModel.getContent()
+        }) {
+            Text(text = "Change")
+        }
+        println("Show: ${loading.value}")
+        CircularProgressBar(isDisplayed = loading.value!!)
+        Text(text = "Some data")
+    }
+}
+
 @Composable
 fun Show(){
-    val loading = LoadingViewModel().loading.value
-    LoadingViewModel().getContent()
-    Box(modifier = Modifier.fillMaxSize()) {
-        println("Show: $loading")
-        CircularProgressBar(isDisplayed = loading)
-        Text(text = LoadingViewModel().result.value)
+//    val vm = LoadingViewModel()
+//    vm.getContent()
+//    var loading = remember { vm.loading }
+    var loading = remember { mutableStateOf(true) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+//        println("Show: $loading")
+        Button(onClick = {
+            if (loading.value == true) {
+                loading.value = false
+            } else loading.value = true
+        }) {
+            Text(text = "Change")
+        }
+        CircularProgressBar(isDisplayed = loading.value)
     }
 }
 
